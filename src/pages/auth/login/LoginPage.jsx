@@ -6,8 +6,7 @@ import XSvg from "../../../components/svgs/X";
 import { MdOutlineMail } from "react-icons/md";
 import { MdPassword } from "react-icons/md";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const LoginPage = () => {
@@ -17,8 +16,6 @@ const LoginPage = () => {
   });
 
   const queryClinet = useQueryClient();
-
-  const navigate = useNavigate();
 
   const {
     mutate: loginMutation,
