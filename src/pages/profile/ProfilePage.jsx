@@ -11,7 +11,7 @@ import { FaArrowLeft } from "react-icons/fa6";
 import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 const ProfilePage = () => {
   //    const {data: authUser, error, isPending}  = useQueries({queryKey: ["authUser"]});
