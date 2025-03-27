@@ -7,17 +7,51 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import LoadingSpinner from "./LoadingSpinner";
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Post = ({ post }) => {
   const [comment, setComment] = useState("");
+
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  const queryClient = useQueryClient();
+  const { mutate: deletePost, isPending } = useMutation({
+    mutationFn: async () => {
+      // Delete post API call
+      try {
+        const response = await fetch(`${backendUrl}/posts/${post._id}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Post deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["posts"] }); // Invalidate posts query
+    },
+  });
+
   const postOwner = post.user;
+
   const isLiked = false;
 
-  const isMyPost = true;
+  const isMyPost = authUser.user._id === post.user._id;
 
   const isCommenting = false;
 
-  const handleDeletePost = () => {};
+  const handleDeletePost = () => {
+    // alert("Delete post");
+    deletePost();
+  };
 
   const handlePostComment = (e) => {
     e.preventDefault();
@@ -52,10 +86,14 @@ const Post = ({ post }) => {
             </span>
             {isMyPost && (
               <span className="flex justify-end flex-1">
-                <FaTrash
-                  className="cursor-pointer hover:text-red-500"
-                  onClick={handleDeletePost}
-                />
+                {isPending ? (
+                  <LoadingSpinner />
+                ) : (
+                  <FaTrash
+                    className="w-4 h-4 cursor-pointer text-slate-500"
+                    onClick={handleDeletePost}
+                  />
+                )}
               </span>
             )}
           </div>
