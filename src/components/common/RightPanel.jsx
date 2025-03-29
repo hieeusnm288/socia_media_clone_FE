@@ -2,11 +2,14 @@ import { Link } from "react-router-dom";
 // import RightPanelSkeleton from "../skeletons/RightPanelSkeleton";
 // import { USERS_FOR_RIGHT_PANEL } from "../../utils/db/dummy";
 import RightPanelSkeleton from "../skeletons/RightPanelSkeleton";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const RightPanel = () => {
   // const isLoading = false;
+  const queryClient = useQueryClient();
+
   const { data: suggestedUsers, isLoading } = useQuery({
     queryKey: ["suggestedUsers"],
     queryFn: async () => {
@@ -23,6 +26,28 @@ const RightPanel = () => {
       } catch (error) {
         throw new Error(error.message || "Something went wrong");
       }
+    },
+  });
+
+  const { mutate: followUser, isPending } = useMutation({
+    mutationFn: async (id) => {
+      try {
+        const response = await fetch(`${backendUrl}/users/follow/${id}`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("User followed successfully");
+      queryClient.invalidateQueries({ queryKey: ["suggestedUsers"] });
     },
   });
 
@@ -70,9 +95,12 @@ const RightPanel = () => {
                 <div>
                   <button
                     className="btn bg-white text-black hover:bg-white hover:opacity-90 rounded-full btn-sm"
-                    onClick={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      followUser(user._id);
+                    }}
                   >
-                    Follow
+                    {isPending ? "Loading..." : "Follow"}
                   </button>
                 </div>
               </Link>

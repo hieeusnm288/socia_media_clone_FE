@@ -135,7 +135,7 @@ const Post = ({ post }) => {
                         No comments yet 🤔 Be the first one 😉
                       </p>
                     )}
-                    {post.comment.map((comment) => (
+                    {post?.comment?.map((comment) => (
                       <div key={comment._id} className="flex gap-2 items-start">
                         <div className="avatar">
                           <div className="w-8 rounded-full">

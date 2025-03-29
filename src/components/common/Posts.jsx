@@ -3,9 +3,36 @@ import PostSkeleton from "../skeletons/PostSkeleton";
 import { POSTS } from "../../utils/db/dummy";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useParams } from "react-router-dom";
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Posts = ({ feedType }) => {
+  const { username } = useParams();
+
+  const { data: userProfile } = useQuery({
+    queryKey: ["userProfile", username],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${backendUrl}/users/profile/${username}`, {
+          method: "GET",
+          credentials: "include",
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Something went wrong");
+        }
+
+        return data;
+      } catch (error) {
+        throw new Error(error.message || "Something went wrong");
+      }
+    },
+    enabled: !!username,
+  });
+
   // const isLoading = false;
+  // const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
   const getPostEndPoin = () => {
     switch (feedType) {
@@ -13,6 +40,10 @@ const Posts = ({ feedType }) => {
         return "/posts/all";
       case "following":
         return "/posts/flowing";
+      case "posts":
+        return `/posts/user/${username}`;
+      case "likes":
+        return `/posts/likePost/${userProfile?._id}`;
       default:
         return "/posts/all";
     }
@@ -64,7 +95,7 @@ const Posts = ({ feedType }) => {
       )}
       {!isLoading && !isRefetching && posts && (
         <div>
-          {posts.map((post) => (
+          {posts?.map((post) => (
             <Post key={post._id} post={post} />
           ))}
         </div>
