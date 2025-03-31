@@ -17,6 +17,7 @@ const Post = ({ post }) => {
 
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
   const queryClient = useQueryClient();
+
   const { mutate: deletePost, isPending } = useMutation({
     mutationFn: async () => {
       // Delete post API call
@@ -40,13 +41,92 @@ const Post = ({ post }) => {
     },
   });
 
+  const { mutate: likePost, isPending: isLiking } = useMutation({
+    mutationFn: async () => {
+      // Like post API call
+      try {
+        const response = await fetch(`${backendUrl}/posts/like/${post._id}`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: (updateLikes) => {
+      // queryClient.invalidateQueries({ queryKey: ["posts"] }); // Invalidate posts query
+      // instead, update the post in the cache
+      queryClient.setQueryData(["posts"], (oldPosts) => {
+        return oldPosts.map((oldPost) => {
+          if (oldPost._id === post._id) {
+            return {
+              ...oldPost,
+              liked: updateLikes,
+            };
+          }
+          return oldPost;
+        });
+      });
+    },
+  });
+
+  const { mutate: commentPost, isPending: isCommenting } = useMutation({
+    mutationFn: async () => {
+      // Comment post API call
+      try {
+        const response = await fetch(
+          `${backendUrl}/posts/comment/${post._id}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ text: comment }),
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      // toast.success("Comment added successfully");
+      // queryClient.invalidateQueries({ queryKey: ["posts"] }); // Invalidate posts query
+      queryClient.setQueryData(["posts"], (oldPosts) => {
+        return oldPosts.map((oldPost) => {
+          if (oldPost._id === post._id) {
+            return {
+              ...oldPost,
+              comment: [
+                ...oldPost.comment,
+                { text: comment, user: authUser.user },
+              ],
+            };
+          }
+          return oldPost;
+        });
+      });
+      setComment("");
+    },
+  });
+
   const postOwner = post.user;
 
-  const isLiked = false;
+  const isLiked = post.liked.includes(authUser.user._id);
 
   const isMyPost = authUser.user._id === post.user._id;
 
-  const isCommenting = false;
+  // const isCommenting = false;
 
   const handleDeletePost = () => {
     // alert("Delete post");
@@ -55,9 +135,12 @@ const Post = ({ post }) => {
 
   const handlePostComment = (e) => {
     e.preventDefault();
+    commentPost();
   };
 
-  const handleLikePost = () => {};
+  const handleLikePost = () => {
+    likePost();
+  };
 
   dayjs.extend(relativeTime);
 
@@ -150,9 +233,9 @@ const Post = ({ post }) => {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1">
                             <span className="font-bold">
-                              {comment.user.fullName}
+                              {comment.user.fullname}
                             </span>
-                            <span className="text-gray-700 text-sm">
+                            <span className="text-gray-400 text-sm">
                               @{comment.user.username}
                             </span>
                           </div>
@@ -194,7 +277,8 @@ const Post = ({ post }) => {
                 className="flex gap-1 items-center group cursor-pointer"
                 onClick={handleLikePost}
               >
-                {!isLiked && (
+                {isLiking && <LoadingSpinner size="sm" />}
+                {!isLiked && !isLiking && (
                   <FaRegHeart className="w-4 h-4 cursor-pointer text-slate-500 group-hover:text-pink-500" />
                 )}
                 {isLiked && (

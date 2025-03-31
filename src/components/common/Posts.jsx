@@ -8,7 +8,6 @@ import { useParams } from "react-router-dom";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const Posts = ({ feedType }) => {
   const { username } = useParams();
-
   const { data: userProfile } = useQuery({
     queryKey: ["userProfile", username],
     queryFn: async () => {
