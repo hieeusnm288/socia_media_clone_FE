@@ -4,32 +4,49 @@ import LoadingSpinner from "../../components/common/LoadingSpinner";
 import { IoSettingsOutline } from "react-icons/io5";
 import { FaUser } from "react-icons/fa";
 import { FaHeart } from "react-icons/fa6";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const NotificationPage = () => {
-  const isLoading = false;
-  const notifications = [
-    {
-      _id: "1",
-      from: {
-        _id: "1",
-        username: "hieeus",
-        profileImg: "/avatars/avatar1.jpg",
-      },
-      type: "follow",
+  const queryClient = useQueryClient();
+
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const res = await fetch(`${backendUrl}/notification`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch notifications");
+      }
+      const data = await res.json();
+      return data;
     },
-    {
-      _id: "2",
-      from: {
-        _id: "2",
-        username: "chiuroi",
-        profileImg: "/avatars/avatar3.jpg",
-      },
-      type: "like",
+    // refetchOnWindowFocus: false,
+  });
+
+  const { mutate: deleteNotification } = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${backendUrl}/notification/delete`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete notifications");
+      }
+      const data = await res.json();
+      return data;
     },
-  ];
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Notifications deleted successfully");
+    },
+  });
 
   const deleteNotifications = () => {
-    alert("All notifications deleted");
+    deleteNotification();
   };
 
   return (
