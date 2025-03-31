@@ -4,54 +4,6 @@ import toast from "react-hot-toast";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const EditProfileModal = ({ userProfile }) => {
-  const queryClient = useQueryClient();
-  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
-  const { mutate: updateProfile } = useMutation({
-    mutationFn: async ({
-      fullname,
-      username,
-      email,
-      bio,
-      link,
-      newPassword,
-      currentPassword,
-    }) => {
-      try {
-        const res = await fetch(
-          `${backendUrl}/users/update/${authUser?.user._id}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({
-              fullname,
-              username,
-              email,
-              bio,
-              link,
-              newPassword,
-              currentPassword,
-            }),
-          }
-        );
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || "Something went wrong");
-        }
-        return data;
-      } catch (error) {
-        console.log(error);
-        throw new Error(error.message || "Something went wrong");
-      }
-    },
-    onSuccess: () => {
-      toast.success("Profile updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["authUser"] });
-    },
-  });
-
   const [formData, setFormData] = useState({
     fullname: userProfile?.fullname || "",
     username: userProfile?.username || "",
@@ -61,13 +13,53 @@ const EditProfileModal = ({ userProfile }) => {
     newPassword: "",
     currentPassword: "",
   });
-
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handUpdateProfile = () => {
-    updateProfile();
+  const queryClient = useQueryClient();
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  const { mutate: updateProfile } = useMutation({
+    mutationFn: async (formData) => {
+      try {
+        const res = await fetch(
+          `${backendUrl}/users/update/${authUser?.user._id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(formData),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Something went wrong");
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error.message || "Something went wrong");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
+      document.getElementById("edit_profile_modal").closeModal();
+    },
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    try {
+      updateProfile(formData);
+    } catch (error) {
+      toast.error("Something went wrong");
+      throw new Error(error.message || "Something went wrong");
+    }
   };
 
   return (
@@ -83,13 +75,7 @@ const EditProfileModal = ({ userProfile }) => {
       <dialog id="edit_profile_modal" className="modal">
         <div className="modal-box border rounded-md border-gray-700 shadow-md">
           <h3 className="font-bold text-lg my-3">Update Profile</h3>
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              alert("Profile updated successfully");
-            }}
-          >
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-wrap gap-2">
               <input
                 type="text"
@@ -151,10 +137,7 @@ const EditProfileModal = ({ userProfile }) => {
               name="link"
               onChange={handleInputChange}
             />
-            <button
-              className="btn btn-primary rounded-full btn-sm text-white"
-              onClick={handUpdateProfile}
-            >
+            <button className="btn btn-primary rounded-full btn-sm text-white">
               Update
             </button>
           </form>
