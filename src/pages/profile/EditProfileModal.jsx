@@ -1,18 +1,73 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import toast from "react-hot-toast";
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const EditProfileModal = () => {
+const EditProfileModal = ({ userProfile }) => {
+  const queryClient = useQueryClient();
+  const { data: authUser } = useQuery({ queryKey: ["authUser"] });
+  const { mutate: updateProfile } = useMutation({
+    mutationFn: async ({
+      fullname,
+      username,
+      email,
+      bio,
+      link,
+      newPassword,
+      currentPassword,
+    }) => {
+      try {
+        const res = await fetch(
+          `${backendUrl}/users/update/${authUser?.user._id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              fullname,
+              username,
+              email,
+              bio,
+              link,
+              newPassword,
+              currentPassword,
+            }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Something went wrong");
+        }
+        return data;
+      } catch (error) {
+        console.log(error);
+        throw new Error(error.message || "Something went wrong");
+      }
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["authUser"] });
+    },
+  });
+
   const [formData, setFormData] = useState({
-    fullName: "",
-    username: "",
-    email: "",
-    bio: "",
-    link: "",
+    fullname: userProfile?.fullname || "",
+    username: userProfile?.username || "",
+    email: userProfile?.email || "",
+    bio: userProfile?.bio || "",
+    link: userProfile?.link || "",
     newPassword: "",
     currentPassword: "",
   });
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handUpdateProfile = () => {
+    updateProfile();
   };
 
   return (
@@ -40,8 +95,8 @@ const EditProfileModal = () => {
                 type="text"
                 placeholder="Full Name"
                 className="flex-1 input border border-gray-700 rounded p-2 input-md"
-                value={formData.fullName}
-                name="fullName"
+                value={formData.fullname}
+                name="fullname"
                 onChange={handleInputChange}
               />
               <input
@@ -96,7 +151,10 @@ const EditProfileModal = () => {
               name="link"
               onChange={handleInputChange}
             />
-            <button className="btn btn-primary rounded-full btn-sm text-white">
+            <button
+              className="btn btn-primary rounded-full btn-sm text-white"
+              onClick={handUpdateProfile}
+            >
               Update
             </button>
           </form>
