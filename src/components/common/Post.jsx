@@ -150,7 +150,7 @@ const Post = ({ post }) => {
         <div className="avatar">
           <Link
             to={`/profile/${postOwner.username}`}
-            className="w-8 rounded-full overflow-hidden"
+            className="w-8 rounded-full overflow-hidden h-8"
           >
             <img src={postOwner.profileImg || "/avatar-placeholder.png"} />
           </Link>

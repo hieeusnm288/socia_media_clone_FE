@@ -11,6 +11,7 @@ import { MdEdit } from "react-icons/md";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const ProfilePage = () => {
@@ -87,6 +88,45 @@ const ProfilePage = () => {
       // toast.success("User followed successfully");
       queryClient.invalidateQueries({ queryKey: ["suggestedUsers"] });
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
+    },
+  });
+
+  const { mutate: updateProfile } = useMutation({
+    mutationFn: async () => {
+      try {
+        const response = await fetch(
+          `${backendUrl}/users/update/${authUser?.user._id}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              coverImg,
+              profileImg,
+            }),
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message);
+        }
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+        setCoverImg(null),
+        setProfileImg(null),
+        (coverImgRef.current.value = null),
+        (profileImgRef.current.value = null),
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] }),
+      ]);
     },
   });
 
@@ -204,7 +244,7 @@ const ProfilePage = () => {
                 {(coverImg || profileImg) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-                    onClick={() => alert("Profile updated successfully")}
+                    onClick={updateProfile}
                   >
                     Update
                   </button>
